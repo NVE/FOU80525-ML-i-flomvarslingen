@@ -1,5 +1,6 @@
 # Read data from Azure share point 
 # setwd('C:/Users/byha/OneDrive - Norges vassdrags- og energidirektorat/Dokumenter/ML')
+# edit
 
 library(readxl)
 library(openxlsx)
