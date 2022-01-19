@@ -50,7 +50,7 @@ names(data)[25] <- "flow"                     # column heading for columns 24
 #------ For 3h og other finer than day data use this ------
 
 data$dateTime = as.POSIXct(paste(paste(data$year, data$month, data$day, sep='-'), 
-
+                                 
                                  paste(data$hour, '00', '00', sep=':')), format = '%Y-%m-%d %H:%M:%S')
 
 data[,1:4] <- NULL
@@ -115,10 +115,10 @@ std <- apply(data1[, -4], 2, sd, na.rm = TRUE)
 glimpse(scaled_train)
 #scaled_train <- scaled_train
 
- 
+
 
 # ---- 3D Array 
- # [samples, timesteps, features] for both predict X and target Y 
+# [samples, timesteps, features] for both predict X and target Y 
 
 # ------samples specifies the number of observations which will be processed in batches.
 # ------timesteps tells us the number of time steps (lags). Or in other words how many units back in time we want our network to see.
@@ -223,10 +223,10 @@ epochs1 = 20 #
 # kfold <- createFolds(x_train_data, k=10)
 # 
 # for (fold in kfold){
-  
-  # define 10-fold cross validation
-  
-  # running through each fold of the cross-validation
+
+# define 10-fold cross validation
+
+# running through each fold of the cross-validation
 
 lstm_model <- keras_model_sequential()
 
@@ -254,7 +254,7 @@ lstm_model %>%
 lstm_model %>%
   # compile(loss = 'mae', optimizer = 'adam', metrics = 'accuracy')
   compile(loss = 'mae', optimizer = optimizer_adam())
-  
+
 summary(lstm_model)
 
 history2 <- lstm_model %>% fit(
@@ -274,7 +274,7 @@ history2 <- lstm_model %>% fit(
 # }
 
 plot(history2) +theme_bw()
-  
+
 
 lstm_train <- lstm_model %>%
   predict(x_train_arr, batch_size = batch_size1) %>%   
