@@ -1,23 +1,10 @@
 
-library(tidyverse)
-library(hydroGOF)
-library(readxl)
-library(openxlsx)
-library(zoo)
-#---- keras --------
-library(tensorflow)
-library(keras)
-library(tfautograph)
-library(reticulate)
-library(purrr)
-library(data.table)
-library(ggplot2)
-library(tibble)
-library(readr)
-library(plotly)
-library(caret)
 
-# TODO:1 make 10 elevation zones as separate inputs
+pkgs <- c("tidyverse", "hydroGOF", "readxl","zoo","tensorflow","keras","tfautograph","reticulate","purrr","data.table","ggplot2","tibble","readr","plotly","caret")
+
+inst = lapply(pkgs, library, character.only = TRUE)
+
+# TODO:1 make 10 elevation zones as separate inputs (function to retrieve data , 1. daily, 2.3h and 3. 10 elevations)
 # TODO:2 is there a better way to weigh floods more than low flows? What metrics is good for that?
 # TODO:3 all (selected)-catchment runner infrastructure
 # TODO:4 develop infrastructure to run scenarios with ranges of hyperparameters (units, batch-size, etc)
@@ -38,33 +25,43 @@ data[,5]<- NULL
 
 #--------  for daily data use this -----
 
+#dailyF <-function(data){
+  
+  names(data)[1:4] <- c("year", "month", "day", "hour") # column heading columns 1:3
 
-names(data)[1:4] <- c("year", "month", "day", "hour") # column heading columns 1:3
+  names(data)[5:14] <- sprintf("rain%d",1:10)   # Column heading for columns 4:13
 
-names(data)[5:14] <- sprintf("rain%d",1:10)   # Column heading for columns 4:13
+  names(data)[15:24] <- sprintf("temp%d",1:10)   # column headings fr columns 14:23
 
-names(data)[15:24] <- sprintf("temp%d",1:10)   # column headings fr columns 14:23
-
-names(data)[25] <- "flow"                     # column heading for columns 24 
-
-#------ For 3h og other finer than day data use this ------
-
-data$dateTime = as.POSIXct(paste(paste(data$year, data$month, data$day, sep='-'), 
-                                 
-                                 paste(data$hour, '00', '00', sep=':')), format = '%Y-%m-%d %H:%M:%S')
-
-data[,1:4] <- NULL
-
-data[,21][data[,21] < 0] <- NA  # Make negative numbers = NA
-
-data <- data[complete.cases(data[ , 'flow']), ]   # leaves out where Q is NA
-
-d.dates <- data$dateTime
+  names(data)[25] <- "flow" 
 
 
-dat <- zoo(as.data.frame(cbind(rowMeans(data[,1:10]),rowMeans(data[11:20]), data$flow)),data$dateTime)
+#}
 
-names(dat) <-c("P_mm", "T_oC", "Q_m3s")
+# column heading for columns 24 
+
+
+  #------ For 3h and other finer than day data use this ------
+  
+  data$dateTime = as.POSIXct(paste(paste(data$year, data$month, data$day, sep='-'), 
+                                   
+                                   paste(data$hour, '00', '00', sep=':')), format = '%Y-%m-%d %H:%M:%S')
+  
+  data[,1:4] <- NULL
+  
+  data[,21][data[,21] < 0] <- NA  # Make negative numbers = NA
+  
+  data <- data[complete.cases(data[ , 'flow']), ]   # leaves out where Q is NA
+  
+  d.dates <- data$dateTime
+  
+  
+  dat <- zoo(as.data.frame(cbind(rowMeans(data[,1:10]),rowMeans(data[11:20]), data$flow)),data$dateTime)
+  
+  names(dat) <-c("P_mm", "T_oC", "Q_m3s")
+  
+#}
+
 
 # For a later attempt, we should try keeping the 
 # 10 elevation zones as separate input and train on those instead of 
@@ -213,11 +210,15 @@ y_test_arr <- array(
   )
 )
 
+batch_size1 = 10 #200, 300, 400, 500) #i
+time_step1 = 2 #k
+units1 = 32 #j
+epochs1 = 100 #
 
-batch_size1 = 100 #200, 300, 400, 500) #i
-time_step1 = 8 #k
-units1 = 128 #j
-epochs1 = 20 #
+# batch_size1 = 100 #200, 300, 400, 500) #i
+# time_step1 = 10 #k
+# units1 = 128 #j
+# epochs1 = 20 #
 # prepare input data for the prediction
 
 # kfold <- createFolds(x_train_data, k=10)
