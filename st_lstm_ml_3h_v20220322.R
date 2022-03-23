@@ -1,5 +1,6 @@
-st_lstm_run <- function(data.dir=file.path("Z:","GIT-repo"),fileN='2.463.3h.ptq', tstep='3h',  zones='single'){
-
+st_lstm_run <- function(data.dir=file.path("Z:","GIT-repo","data"),
+                        fileN='2.463.3h.ptq', tstep='3h',  zones='single'){
+ #fileN='8.6.3h.ptq'
   # tstep = '3h' or '24h'
   # zone = 'single' or elev.zone
   
@@ -147,7 +148,7 @@ scaled_train <- data1 %>%
 
 scaled_train <- as.data.frame(scale(data1[,-dim(data1)[2]], center = TRUE, scale = TRUE))
 
-scaled_train$flow <- NULL
+#scaled_train$Q_m3s <- NULL
 
 mean <- apply(data1[, -dim(data1)[2]], 2, mean,na.rm = TRUE)
 
@@ -246,10 +247,10 @@ y_train_data <- train$Q_m3s
 
 y_test_data <- test$Q_m3s 
 
-train$flow <- NULL
+train$Q_m3s <- NULL
 # valid[,3] <- NULL
 
-test$flow <- NULL
+test$Q_m3s <- NULL
 
 # --------------- now transform data into 3D form ------------------------
 
@@ -297,10 +298,10 @@ y_test_arr <- array(
 
 # TODO add to this function parameters
 
-batch_size1 = 200 #200, 300, 400, 500) #i 10 /20
-time_step1 = 10 #k 2 - 100
+batch_size1 = 100 #200, 300, 400, 500) #i 10 /20
+time_step1 = 2 #k 2 - 100
 units1 = 128 #j 128
-epochs1 = 100 #
+epochs1 = 200 #
 
 # batch_size1 = 100 #200, 300, 400, 500) #i
 # time_step1 = 10 #k
@@ -321,21 +322,31 @@ epochs1 = 100 #
 lstm_model <- keras_model_sequential()
 
 lstm_model %>%
-  layer_lstm(units = units1, # size of the layer (was 64)
+  layer_lstm(units = 128, # size of the layer (was 64)
              activation = 'tanh',
-             batch_input_shape = c(batch_size1, time_step1, 62), # batch size, timesteps, features
+             batch_input_shape = c(100, 2, 8), # batch size, timesteps, features
              kernel_regularizer = regularizer_l2(0.001),
              return_sequences = TRUE,
              stateful = TRUE) %>%
+  # layer_lstm(units = units1, # size of the layer (was 64)
+  #            activation = 'tanh',
+  #            batch_input_shape = c(batch_size1, time_step1, 8), # batch size, timesteps, features
+  #            kernel_regularizer = regularizer_l2(0.001),
+  #            return_sequences = TRUE,
+  #            stateful = TRUE) %>%
   #layer_batch_normalization()%>%
   # fraction of the units to drop for the linear transformation of the inputs
   layer_dropout(rate = 0.2) %>%
- 
-   layer_lstm(units = units1/2,
+  layer_lstm(units = 64,
              activation = 'sigmoid',
              kernel_regularizer = regularizer_l2(0.001),
              return_sequences = TRUE,
              stateful = TRUE) %>%
+   # layer_lstm(units = units1/2,
+   #           activation = 'sigmoid',
+   #           kernel_regularizer = regularizer_l2(0.001),
+   #           return_sequences = TRUE,
+   #           stateful = TRUE) %>%
   layer_dropout(rate = 0.2) %>%
   #layer_batch_normalization()%>%
   time_distributed(keras::layer_dense(units = 1))
@@ -352,8 +363,8 @@ summary(lstm_model)
 history2 <- lstm_model %>% fit(
   x = x_train_arr,
   y = y_train_arr,
-  batch_size = batch_size1, # = batch_size in line 226
-  epochs = epochs1, # was 100
+  batch_size = 100, # = batch_size in line 226
+  epochs = 200, # was 100
   validation_split=0.2,
   # callbacks = c(
   #   callback_early_stopping(patience = 5),
@@ -418,16 +429,16 @@ plot_ly(usc_lstm_train, x = ~dates, y = ~obs1, type = "scatter", mode = "lines")
 # kge_trn <- KGE(usc_lstm_train$sim1, usc_lstm_train$obs1)
 # nse_trn <- NSE(usc_lstm_train$sim1, usc_lstm_train$obs1)
 
-eval_tbl1 <- as_tibble(stn=stn_nr, rmse_tst = rmse(usc_lstm_test$sim1, usc_lstm_test$obs1),
-                        kge_tst = KGE(usc_lstm_test$sim1, usc_lstm_test$obs1),
-                        nse_tst = NSE(usc_lstm_test$sim1, usc_lstm_test$obs1),
-                        ipe_tst = (rmse_tst^2+kge_tst^2+nse_tst^2)^.5)
-
+eval_tbl1 <- tibble(stn="2.423", 
+                       rmse_tst = rmse(usc_lstm_test$sim1, usc_lstm_test$obs1, na.rm = TRUE),
+                       kge_tst = KGE(usc_lstm_test$sim1, usc_lstm_test$obs1, na.rm = TRUE),
+                       nse_tst = NSE(usc_lstm_test$sim1, usc_lstm_test$obs1, na.rm = TRUE))
+# eval_tbl1 %>% add_column(ipe = ((1/3)*(eval_tbl1$rmse_tst^2+eval_tbl1$kge_tst^2+eval_tbl1$nse_tst^2))^.5)
 eval_tbl <-bind_rows(eval_tbl, eval_tbl1) #make sure it is defined outside the loop
 
 ## Warning: line.color doesn't (yet) support data arrays
-plot_ly(dat.df[12001:18000,], x = ~index, y = ~Q_m3s, type = "scatter", mode = "lines") %>%
-  add_trace(y = pred_out, x = dat.df$index[12001:18000], name = "LSTM prediction", mode = "lines")
+# plot_ly(lstm_test, x = ~lstm_test$dates, y = ~obs1, type = "scatter", mode = "lines") %>%
+  # add_trace(y = lstm_forecast, x = ~lstm_test$dates, name = "LSTM prediction", mode = "lines")
 
 
 }
